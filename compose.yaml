@@ -1,0 +1,88 @@
+services:
+  netbox-postgres:
+    image: postgres:15-alpine
+    container_name: netbox_postgres
+    hostname: netbox-postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "netbox", "-U", "netbox"]
+      timeout: 45s
+      interval: 10s
+      retries: 10   
+    volumes:
+      - netbox_postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+    networks:
+      - netbox_internal
+     
+  netbox-redis:
+    image: redis:7-alpine
+
+    command: redis-server
+    container_name: netbox_redis
+    hostname: netbox-redis
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+    restart: always
+    volumes:
+      - netbox_redis:/data
+    networks:
+      - netbox_internal
+      
+  netbox-server:
+    image: lscr.io/linuxserver/netbox:latest
+    container_name: netbox_server
+    hostname: netbox-server
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TZ}
+      - SUPERUSER_EMAIL=${SUPERUSER_EMAIL}
+      - SUPERUSER_PASSWORD=${SUPERUSER_PASSWORD}
+      - ALLOWED_HOST=${ALLOWED_HOST}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=netbox-postgres
+      - DB_PORT=5432
+      - REDIS_HOST=netbox-redis
+      - REDIS_PORT=6379
+      - REDIS_DB_TASK=0
+      - REDIS_DB_CACHE=1
+
+    volumes:
+      - netbox_config:/config
+    ports:
+      - 8001:8000
+    depends_on:
+      - netbox-postgres
+      - netbox-redis
+    restart: unless-stopped
+    networks:
+      - netbox_internal
+      - caddy-1_caddy_net
+
+
+networks:
+  netbox_internal:
+    external: true
+
+volumes:
+  netbox_config:
+    driver_opts:
+      type: "nfs"
+      o: ${NETBOX_NFS_PATH}
+      device: ${NETBOX_NFS_DEVICE_CONFIG}
+  netbox_redis:
+    driver_opts:
+      type: "nfs"
+      o: ${NETBOX_NFS_PATH}
+      device: ${NETBOX_NFS_DEVICE_REDISDATA}
+  netbox_postgres:
+    driver_opts:
+      type: "nfs"
+      o: ${NETBOX_NFS_PATH}
+      device: ${NETBOX_NFS_DEVICE_PGDATA}
