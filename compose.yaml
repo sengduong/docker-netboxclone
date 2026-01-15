@@ -67,7 +67,6 @@ services:
 
 networks:
   netboxclone_internal:
-    external: true
 
 volumes:
   netboxclone_config:
