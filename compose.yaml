@@ -55,18 +55,21 @@ services:
 
     volumes:
       - netboxclone_config:/config
-    ports:
-      - 8001:8000
+    #ports:
+    #  - 8001:8000
     depends_on:
       - netboxclone-postgres
       - netboxclone-redis
     restart: unless-stopped
     networks:
       - netboxclone_internal
+      - caddy-1_caddy_net
 
 
 networks:
   netboxclone_internal:
+  caddy-1_caddy_net:
+    external: true
 
 volumes:
   netboxclone_config:
