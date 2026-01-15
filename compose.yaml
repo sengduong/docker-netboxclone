@@ -1,8 +1,8 @@
 services:
-  netbox-postgres:
+  netboxclone-postgres:
     image: postgres:15-alpine
     container_name: netbox_postgres
-    hostname: netbox-postgres
+    hostname: netboxclond-postgres
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "pg_isready", "-q", "-d", "netbox", "-U", "netbox"]
@@ -10,32 +10,32 @@ services:
       interval: 10s
       retries: 10   
     volumes:
-      - netbox_postgres:/var/lib/postgresql/data
+      - netboxclone_postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
     networks:
-      - netbox_internal
+      - netboxclone_internal
      
-  netbox-redis:
+  netboxclone-redis:
     image: redis:7-alpine
 
     command: redis-server
     container_name: netbox_redis
-    hostname: netbox-redis
+    hostname: netboxclone-redis
     healthcheck:
       test: ["CMD-SHELL", "redis-cli ping || exit 1"]
     restart: always
     volumes:
-      - netbox_redis:/data
+      - netboxclone_redis:/data
     networks:
-      - netbox_internal
+      - netboxclone_internal
       
-  netbox-server:
+  netboxclone-server:
     image: lscr.io/linuxserver/netbox:latest
     container_name: netbox_server
-    hostname: netbox-server
+    hostname: netboxclone-server
     environment:
       - PUID=1000
       - PGID=1000
@@ -54,34 +54,33 @@ services:
       - REDIS_DB_CACHE=1
 
     volumes:
-      - netbox_config:/config
+      - netboxclone_config:/config
     ports:
       - 8001:8000
     depends_on:
-      - netbox-postgres
-      - netbox-redis
+      - netboxclone-postgres
+      - netboxclone-redis
     restart: unless-stopped
     networks:
-      - netbox_internal
-      - caddy-1_caddy_net
+      - netboxclone_internal
 
 
 networks:
-  netbox_internal:
+  netboxclone_internal:
     external: true
 
 volumes:
-  netbox_config:
+  netboxclone_config:
     driver_opts:
       type: "nfs"
       o: ${NETBOX_NFS_PATH}
       device: ${NETBOX_NFS_DEVICE_CONFIG}
-  netbox_redis:
+  netboxclone_redis:
     driver_opts:
       type: "nfs"
       o: ${NETBOX_NFS_PATH}
       device: ${NETBOX_NFS_DEVICE_REDISDATA}
-  netbox_postgres:
+  netboxclone_postgres:
     driver_opts:
       type: "nfs"
       o: ${NETBOX_NFS_PATH}
